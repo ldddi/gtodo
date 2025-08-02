@@ -1,12 +1,17 @@
 package todo
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/alexeyco/simpletable"
 )
 
 // todo struct
@@ -70,6 +75,7 @@ func (t *Todos) Add(task, cat string) {
 	}
 
 	*t = append(*t, item)
+
 }
 
 func (t *Todos) Update(id int, task string, cat string, done int) error {
@@ -99,16 +105,51 @@ func (t *Todos) Update(id int, task string, cat string, done int) error {
 	return nil
 }
 
-func (t *Todos) Delete(id int) error {
-	todos := *t
+func (t *Todos) DeleteByID(id int) error {
 
 	idx := t.getIdxByID(id)
-
 	if idx < 0 {
 		return errors.New("invalid ID")
 	}
 
-	*t = append(todos[:idx], todos[idx+1:]...)
+	*t = append((*t)[:idx], (*t)[idx+1:]...)
+	fmt.Println("Successful")
+	return nil
+}
+
+func (t *Todos) DeleteByDone(done int) error {
+
+	if done != 0 && done != 1 {
+		return errors.New("invalid ID")
+	}
+
+	if done == 0 {
+		fmt.Print("This will delete the unfinished todos, are you sure? (yes/no)")
+		r := bufio.NewReader(os.Stdin)
+		ok, err := r.ReadString('\n')
+		if err != nil {
+			return err
+		}
+		ok = strings.TrimSpace(ok)
+		ok = strings.ToLower(ok)
+
+		if ok == "no" {
+			return nil
+		}
+	}
+
+	tmp := (*t)[:0]
+	for _, item := range *t {
+		if done == 1 && !item.Done {
+			tmp = append(tmp, item)
+		} else if done == 0 && item.Done {
+			tmp = append(tmp, item)
+		}
+	}
+
+	*t = tmp
+
+	fmt.Println("Successful")
 	return nil
 }
 
@@ -118,22 +159,27 @@ func (t *Todos) Load() error {
 		return err
 	}
 
+	if len(fileBytes) == 0 {
+		return err
+	}
+
 	if err := json.Unmarshal(fileBytes, t); err != nil {
 		return err
 	}
 
-	nextID = (*t)[0].ID
+	nextID = -1
 	for _, item := range *t {
-		if nextID > item.ID {
-			nextID = item.ID + 1
+		if item.ID > nextID {
+			nextID = item.ID
 		}
 	}
+	nextID++
 	return nil
 }
 
 func (t *Todos) Store() error {
 
-	data, err := json.Marshal(t)
+	data, err := json.MarshalIndent(t, "", "")
 	if err != nil {
 		return err
 	}
@@ -142,5 +188,49 @@ func (t *Todos) Store() error {
 }
 
 func (t *Todos) Print() {
+	table := simpletable.New()
 
+	table.Header = &simpletable.Header{
+		Cells: []*simpletable.Cell{
+			{Text: "ID", Align: simpletable.AlignCenter},
+			{Text: "Task", Align: simpletable.AlignCenter},
+			{Text: "Category", Align: simpletable.AlignCenter},
+			{Text: "Done", Align: simpletable.AlignCenter},
+			{Text: "CreateAt", Align: simpletable.AlignCenter},
+			{Text: "CompletedAt", Align: simpletable.AlignCenter},
+		},
+	}
+
+	for _, row := range *t {
+		done := "❌"
+		completeAt := ""
+
+		if row.Done {
+			done = "\u2705"
+		}
+
+		if row.CompletedAt != nil {
+			completeAt = row.CompletedAt.Format("2006-01-02")
+		}
+
+		table.Body.Cells = append(table.Body.Cells, []*simpletable.Cell{
+			{Text: fmt.Sprintf("%d", row.ID), Align: simpletable.AlignCenter},
+			{Text: row.Task, Align: simpletable.AlignCenter},
+			{Text: row.Category, Align: simpletable.AlignCenter},
+			{Text: done, Align: simpletable.AlignCenter},
+			{Text: row.CreateAt.Format("2006-01-02"), Align: simpletable.AlignCenter},
+			{Text: completeAt, Align: simpletable.AlignCenter},
+		})
+	}
+
+	table.Footer = &simpletable.Footer{
+		Cells: []*simpletable.Cell{
+			{Text: fmt.Sprintf("not done count: %v", t.getNotDoneCnt()), Span: 5},
+			{},
+		},
+	}
+
+	table.SetStyle(simpletable.StyleUnicode)
+
+	table.Println()
 }

@@ -10,7 +10,7 @@
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/main.go",
-      "args": ["add"]
+      "args": ["delete", "-done", "0"]
     }
   ]
 }

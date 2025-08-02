@@ -22,4 +22,8 @@ func AddTask(t *todo.Todos, args []string) {
 	}
 
 	t.Add(*task, *cat)
+	err := t.Store()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

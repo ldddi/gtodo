@@ -22,9 +22,15 @@ func main() {
 		cmd.Init()
 	case "add":
 		cmd.Reload(todos)
-		cmd.AddTask(todos, os.Args[:2])
+		cmd.AddTask(todos, os.Args[2:])
 	case "list":
-		cmd.AddTask(todos, os.Args[:2])
 		cmd.Reload(todos)
+		cmd.ListTask(todos, os.Args[2:])
+	case "update":
+		cmd.Reload(todos)
+		cmd.UpdateTask(todos, os.Args[2:])
+	case "delete":
+		cmd.Reload(todos)
+		cmd.DeleteTask(todos, os.Args[2:])
 	}
 }
