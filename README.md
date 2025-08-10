@@ -1,5 +1,5 @@
 <p>
-  <img src="./pic.png">
+  <img src="https://github.com/ldddi/gtodo/blob/main/pic.png">
 </p>
 
 # Go CLI Todo App 📝
